@@ -7,8 +7,8 @@ const PDF_MAX_SIZE = 50 * 1024 * 1024
 
 interface ApiRequest {
   method?: string
+  url?: string
   body?: unknown
-  query?: Record<string, string | string[] | undefined>
 }
 
 interface ApiResponse {
@@ -101,6 +101,12 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Ocorreu um erro inesperado.'
 }
 
+function getPrintIdentification(request: ApiRequest, action: 'upload-url' | 'complete') {
+  const pathname = new URL(request.url || '/', 'http://localhost').pathname
+  const match = pathname.match(new RegExp(`^/api/prints/(\\d+)/${action}/?$`))
+  return match ? Number(match[1]) : Number.NaN
+}
+
 export async function health(_request: ApiRequest, response: ApiResponse) {
   let databaseConfigured = false
   try {
@@ -158,7 +164,7 @@ export async function createPdfUpload(request: ApiRequest, response: ApiResponse
   }
 
   try {
-    const identification = Number(request.query?.id)
+    const identification = getPrintIdentification(request, 'upload-url')
     if (!Number.isSafeInteger(identification) || identification < 1) {
       sendJson(response, 400, { error: 'Identificação inválida.' })
       return
@@ -197,7 +203,7 @@ export async function completePrint(request: ApiRequest, response: ApiResponse) 
     return
   }
 
-  const identification = Number(request.query?.id)
+  const identification = getPrintIdentification(request, 'complete')
   if (!Number.isSafeInteger(identification) || identification < 1) {
     sendJson(response, 400, { error: 'Identificação inválida.' })
     return
