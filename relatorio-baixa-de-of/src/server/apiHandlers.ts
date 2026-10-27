@@ -1,5 +1,5 @@
-import { getSupabase } from './supabase'
-import type { ReportItem } from '../types/report'
+import { getSupabase } from './supabase.js'
+import type { ReportItem } from '../types/report.js'
 
 const PDF_PATH_PREFIX = 'relatorios'
 const PDF_BUCKET = 'relatorios-pdfs'
