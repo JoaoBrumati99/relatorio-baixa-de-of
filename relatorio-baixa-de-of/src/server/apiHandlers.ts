@@ -16,6 +16,8 @@ interface ApiResponse {
   json: (body: unknown) => void
 }
 
+type ApiHandler = (request: ApiRequest, response: ApiResponse) => Promise<void>
+
 interface ReportRecord {
   of_number: string
   client: string
@@ -99,6 +101,44 @@ function errorStatus(error: unknown) {
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Ocorreu um erro inesperado.'
+}
+
+export async function handleApiRequest(request: Request, handler: ApiHandler) {
+  let body: unknown
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    const requestBody = await request.text()
+    if (requestBody) {
+      try {
+        body = JSON.parse(requestBody)
+      } catch {
+        return Response.json({ error: 'O corpo da requisição precisa ser um JSON válido.' }, { status: 400 })
+      }
+    }
+  }
+
+  let statusCode = 200
+  let responseBody: unknown
+  const response: ApiResponse = {
+    status(code) {
+      statusCode = code
+      return response
+    },
+    json(value) {
+      responseBody = value
+    },
+  }
+
+  try {
+    await handler({ method: request.method, url: request.url, body }, response)
+  } catch (error) {
+    console.error('Falha ao executar a função de API:', error)
+    return Response.json(
+      { error: 'Ocorreu um erro interno ao processar a solicitação.' },
+      { status: 500 },
+    )
+  }
+
+  return Response.json(responseBody, { status: statusCode })
 }
 
 function getPrintIdentification(request: ApiRequest, action: 'upload-url' | 'complete') {

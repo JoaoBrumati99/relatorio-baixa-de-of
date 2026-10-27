@@ -1,1 +1,5 @@
-export { createPdfUpload as default } from '../../../src/server/apiHandlers'
+import { createPdfUpload, handleApiRequest } from '../../../src/server/apiHandlers'
+
+export default {
+  fetch: (request: Request) => handleApiRequest(request, createPdfUpload),
+}

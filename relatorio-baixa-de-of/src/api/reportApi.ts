@@ -46,12 +46,16 @@ let storageClient: SupabaseClient | null = null
 
 async function requestJson<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, options)
+  const responseText = await response.text()
   let body: T & ApiError
 
   try {
-    body = await response.json() as T & ApiError
+    body = JSON.parse(responseText) as T & ApiError
   } catch {
-    throw new Error('O servidor retornou uma resposta inválida.')
+    const requestId = response.headers.get('x-vercel-id')
+    throw new Error(
+      `A API respondeu com HTTP ${response.status}, mas não retornou JSON.${requestId ? ` ID: ${requestId}.` : ''}`,
+    )
   }
 
   if (!response.ok) {
