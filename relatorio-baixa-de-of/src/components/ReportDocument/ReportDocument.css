@@ -172,7 +172,6 @@
 
   .doc-head,
   .doc-meta,
-  .doc-table,
   .signatures {
     break-inside: avoid;
   }
