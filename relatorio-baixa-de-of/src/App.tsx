@@ -4,7 +4,7 @@ import { Header } from './components/Header/Header'
 import { ReportDocument } from './components/ReportDocument/ReportDocument'
 import { ReportToolbar } from './components/ReportToolbar/ReportToolbar'
 import { StatusMessage } from './components/StatusMessage/StatusMessage'
-import { createPdfFile } from './services/pdfService'
+import { createPdfFile, positionSignaturesAtPageFooter } from './services/pdfService'
 import { readSpreadsheet } from './services/spreadsheetService'
 import type { ReportItem, ReportMetadata } from './types/report'
 import './App.css'
@@ -29,6 +29,7 @@ function getDepositDescription(items: ReportItem[]) {
 
 function App() {
   const [items, setItems] = useState<ReportItem[]>([])
+  const [operatorName, setOperatorName] = useState('')
   const [metadata, setMetadata] = useState(initialMetadata)
   const [deposit, setDeposit] = useState('')
   const [fileName, setFileName] = useState('')
@@ -72,6 +73,7 @@ function App() {
 
     setFileName(file.name)
     setItems([])
+    setOperatorName('')
     setDeposit('')
     setIdentification(null)
     setStatus('Lendo arquivo...')
@@ -81,6 +83,7 @@ function App() {
     try {
       const parsed = await readSpreadsheet(file)
       setItems(parsed.items)
+      setOperatorName(parsed.operatorName ?? '')
       setDeposit(parsed.deposit)
       setMetadata((current) => ({
         ...current,
@@ -145,6 +148,16 @@ function App() {
       savedIdentification = newIdentification
       isArchived = true
       setStatus(`PDF arquivado no Supabase Storage. Identificação ${String(newIdentification).padStart(2, '0')}. Abrindo a impressão...`)
+      const paper = document.getElementById('paper')
+      if (!paper) throw new Error('Não foi possível localizar o relatório para imprimir.')
+      document.body.classList.add('pdf-export')
+      positionSignaturesAtPageFooter(paper)
+      window.addEventListener('beforeprint', () => positionSignaturesAtPageFooter(paper), { once: true })
+      window.addEventListener('afterprint', () => {
+        const spacer = paper.querySelector<HTMLElement>('.signature-spacer')
+        if (spacer) spacer.style.height = ''
+        document.body.classList.remove('pdf-export')
+      }, { once: true })
       document.title = `Baixa_Consumo_OF_${metadata.ofNumber.trim().replace(/[\\/:*?"<>|]/g, '_')}`
       window.print()
       window.setTimeout(() => {
@@ -196,6 +209,7 @@ function App() {
           identification={identification}
           items={items}
           metadata={metadata}
+          operatorName={operatorName}
           timestamp={printTimestamp}
           onRemoveItem={removeItem}
           isSaving={isSaving}

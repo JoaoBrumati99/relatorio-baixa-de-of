@@ -26,6 +26,7 @@ export interface ReportPayload {
 export interface ParsedSpreadsheet {
   items: ReportItem[]
   deposit: string
+  operatorName?: string
   ofNumber?: string
   product?: string
 }

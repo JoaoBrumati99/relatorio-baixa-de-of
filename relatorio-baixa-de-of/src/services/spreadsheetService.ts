@@ -17,6 +17,13 @@ function valueText(value: unknown) {
   return String(value).trim().replace(/^"|"$/g, '')
 }
 
+function getNameAndSurname(value: unknown) {
+  const name = valueText(value).split('//', 1)[0].trim()
+  const parts = name.replace(/[._-]+/g, ' ').split(/\s+/).filter(Boolean)
+  if (parts.length < 2) return parts[0] || ''
+  return `${parts[0]} ${parts[parts.length - 1]}`
+}
+
 function parseNumber(value: unknown): number | null {
   if (value == null || value === '') return null
   if (typeof value === 'number') return Number.isFinite(value) ? value : null
@@ -122,6 +129,9 @@ export async function readSpreadsheet(file: File): Promise<ParsedSpreadsheet> {
     ].includes(normalize(header))),
     of: findColumn('numeroof'),
     product: findColumn('produto'),
+    operator: headers.findIndex((header) => [
+      'descusuario', 'usuario', 'nomeusuario',
+    ].includes(normalize(header))),
   }
   if (columns.of < 0) columns.of = findColumn('of')
 
@@ -138,9 +148,13 @@ export async function readSpreadsheet(file: File): Promise<ParsedSpreadsheet> {
   const dataRows = rows.slice(1)
   const first = dataRows.find((row) => row.some((cell) => valueText(cell)))
   const items: ReportItem[] = []
+  let operatorName = ''
 
   for (const row of dataRows) {
     if (!row.some((cell) => valueText(cell))) continue
+    if (columns.operator >= 0) {
+      operatorName = getNameAndSurname(row[columns.operator]) || operatorName
+    }
     let deposit = columns.deposit >= 0 ? valueText(row[columns.deposit]) : ''
     if (/^\d+$/.test(deposit)) deposit = deposit.padStart(4, '0')
 
@@ -168,6 +182,7 @@ export async function readSpreadsheet(file: File): Promise<ParsedSpreadsheet> {
   return {
     items,
     deposit: depositDescription,
+    ...(operatorName ? { operatorName } : {}),
     ...(columns.of >= 0 && first ? { ofNumber: valueText(first[columns.of]) } : {}),
     ...(columns.product >= 0 && first ? { product: valueText(first[columns.product]) } : {}),
   }

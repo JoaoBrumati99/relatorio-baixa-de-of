@@ -6,6 +6,7 @@ interface ReportDocumentProps {
   identification: number | null
   items: ReportItem[]
   metadata: ReportMetadata
+  operatorName: string
   timestamp: Date
   isSaving: boolean
   onRemoveItem: (index: number) => void
@@ -15,6 +16,7 @@ export function ReportDocument({
   identification,
   items,
   metadata,
+  operatorName,
   timestamp,
   isSaving,
   onRemoveItem,
@@ -30,7 +32,7 @@ export function ReportDocument({
         <div className="doc-user">
           <div>{timestamp.toLocaleDateString('pt-BR')}</div>
           <div>{timestamp.toLocaleTimeString('pt-BR')}</div>
-          <div>JOAO.BRUMATI</div>
+          {operatorName && <div>{operatorName}</div>}
           <div>Identificação: {identification === null ? '--' : String(identification).padStart(2, '0')}</div>
         </div>
       </header>
@@ -41,6 +43,7 @@ export function ReportDocument({
         <div>Oficina:</div><div>{metadata.workshop}</div>
       </section>
       <ReportTable items={items} isSaving={isSaving} onRemoveItem={onRemoveItem} />
+      <div className="signature-spacer" aria-hidden="true" />
       <section className="signatures">
         <Signature caption="Assinatura Almoxarifado" />
         <Signature caption="Assinatura Requisitante" />

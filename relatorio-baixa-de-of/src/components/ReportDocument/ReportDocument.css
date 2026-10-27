@@ -67,6 +67,10 @@
   border-bottom: 0;
 }
 
+.signature-spacer {
+  flex: 0 0 auto;
+}
+
 .signatures {
   flex: 0 0 auto;
   min-height: 37mm;
@@ -103,7 +107,7 @@
   width: 210mm;
   min-width: 210mm;
   max-width: 210mm;
-  min-height: 297mm;
+  min-height: 296mm;
   margin: 0;
   padding: 3mm 4mm;
   box-shadow: none;
