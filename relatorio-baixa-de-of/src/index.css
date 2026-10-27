@@ -1,0 +1,68 @@
+:root {
+  color-scheme: light;
+  --ink: #18292e;
+  --muted: #53676c;
+  --line: #26383d;
+  --teal: #176b75;
+  --teal-dark: #0f525a;
+  --canvas: #e9eeee;
+  --paper: #fff;
+  --alert: #8a4219;
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 14px;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--ink);
+  background: var(--canvas);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+input:focus-visible,
+button:focus-visible,
+.file-button:focus-within {
+  outline: 3px solid #61c0cb;
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body,
+  #root {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    background: white;
+  }
+
+  .topbar,
+  .toolbar,
+  .status {
+    display: none !important;
+  }
+}

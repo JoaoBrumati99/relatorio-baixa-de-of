@@ -1,0 +1,17 @@
+.status {
+  min-height: 32px;
+  padding: 7px 24px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.status.status-error {
+  color: var(--alert);
+  font-weight: 650;
+}
+
+@media print {
+  .status {
+    display: none;
+  }
+}

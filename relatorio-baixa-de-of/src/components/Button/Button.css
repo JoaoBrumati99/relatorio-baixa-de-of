@@ -1,0 +1,21 @@
+.button,
+.file-button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  color: white;
+  background: var(--teal);
+  border: 1px solid var(--teal);
+  border-radius: 3px;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.button:hover,
+.file-button:hover {
+  background: var(--teal-dark);
+}

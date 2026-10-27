@@ -1,0 +1,175 @@
+.paper {
+  width: min(100%, 210mm);
+  min-height: 297mm;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  padding: 4mm 4mm 3.5mm;
+  color: #080b0c;
+  background: var(--paper);
+  box-shadow: 0 3px 18px #21383c24;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.doc-head {
+  min-height: 26mm;
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  align-items: center;
+  gap: 2mm;
+  padding: 1mm;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+}
+
+.doc-logo {
+  width: 100%;
+  max-width: 38mm;
+  object-fit: contain;
+}
+
+.doc-company {
+  text-align: center;
+  font-size: 11pt;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.doc-user {
+  overflow-wrap: anywhere;
+  text-align: right;
+  font-size: 9pt;
+  line-height: 1.2;
+}
+
+.doc-meta {
+  display: grid;
+  grid-template-columns: 12% 38% 12% 38%;
+  border: 1px solid var(--line);
+  font-size: 10pt;
+  font-weight: 700;
+}
+
+.doc-meta > div {
+  min-width: 0;
+  min-height: 7mm;
+  padding: 0.8mm 1.1mm;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+
+.doc-meta > div:nth-child(4n) {
+  border-right: 0;
+}
+
+.doc-meta > div:nth-last-child(-n + 2) {
+  border-bottom: 0;
+}
+
+.signatures {
+  flex: 0 0 auto;
+  min-height: 37mm;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7mm;
+  padding: 8mm 4mm 0;
+  border: 1px solid var(--line);
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.signature {
+  align-self: start;
+  display: grid;
+  grid-template-columns: 13mm 1fr;
+  row-gap: 5mm;
+  align-items: end;
+  font-size: 10pt;
+  font-weight: 700;
+}
+
+.signature .rule {
+  min-height: 5mm;
+  border-bottom: 1px solid #111;
+}
+
+.signature .caption {
+  grid-column: 1 / -1;
+  text-align: center;
+}
+
+.pdf-export .paper {
+  width: 210mm;
+  min-width: 210mm;
+  max-width: 210mm;
+  min-height: 297mm;
+  margin: 0;
+  padding: 3mm 4mm;
+  box-shadow: none;
+}
+
+.pdf-export .doc-head {
+  grid-template-columns: 1fr 2fr 1fr;
+}
+
+.pdf-export .doc-company,
+.pdf-export .doc-meta,
+.pdf-export .doc-table {
+  font-size: 11pt;
+}
+
+.pdf-export .doc-user {
+  font-size: 9pt;
+}
+
+.pdf-export .doc-table th,
+.pdf-export .doc-table td {
+  padding: 0.8mm 0.55mm;
+}
+
+.pdf-export .signatures {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7mm;
+}
+
+@media (max-width: 720px) {
+  .paper {
+    min-height: 0;
+    padding: 3mm;
+    box-shadow: none;
+  }
+
+  .doc-head {
+    grid-template-columns: 17% 1fr 18%;
+  }
+
+  .doc-company {
+    font-size: 8pt;
+  }
+
+  .doc-user {
+    font-size: 7pt;
+  }
+
+  .signatures {
+    gap: 5mm;
+  }
+}
+
+@media print {
+  .paper {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    padding: 4mm 4mm 3.5mm;
+    box-shadow: none;
+  }
+
+  .doc-head,
+  .doc-meta,
+  .doc-table,
+  .signatures {
+    break-inside: avoid;
+  }
+}

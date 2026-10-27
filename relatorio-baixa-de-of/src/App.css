@@ -1,0 +1,21 @@
+.app {
+  min-height: 100vh;
+}
+
+.workspace {
+  padding: 2px 18px 30px;
+  overflow: auto;
+}
+
+@media (max-width: 720px) {
+  .workspace {
+    padding: 2px 0 20px;
+  }
+}
+
+@media print {
+  .workspace {
+    padding: 0;
+    overflow: visible;
+  }
+}
