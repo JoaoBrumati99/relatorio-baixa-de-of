@@ -22,7 +22,7 @@ export function ReportDocument({
   return (
     <article className="paper" id="paper">
       <header className="doc-head">
-        <img className="doc-logo" src="/logo_amalfis.jpg" alt="AMALFIS" />
+        <img className="doc-logo" src="/logo_amalfis.png" alt="AMALFIS" />
         <div className="doc-company">
           <div>AMALFIS UNIFORMES CONFECCAO DE ROUPAS LTDA ME</div>
           <div>CNPJ: 11.744.716/0001-10</div>

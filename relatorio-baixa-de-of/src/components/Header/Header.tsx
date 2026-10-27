@@ -10,7 +10,7 @@ export function Header({ fileName, isDisabled, onFileChange }: HeaderProps) {
   return (
     <header className="topbar">
       <div className="brand">
-        <img src="/logo_amalfis.jpg" alt="" />
+        <img src="/logo_amalfis.png" alt="" />
         <span>Baixa de Consumo</span>
       </div>
       <div className="top-actions">
