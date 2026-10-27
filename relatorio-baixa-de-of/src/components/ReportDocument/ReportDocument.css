@@ -69,6 +69,8 @@
 
 .signature-spacer {
   flex: 0 0 auto;
+  border-right: 1px solid var(--line);
+  border-left: 1px solid var(--line);
 }
 
 .signatures {
