@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Baixa de Consumo de Aviamentos</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="/lib/report-items.js"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img src="logo_amalfis.jpg" alt=""><span>Baixa de Consumo</span></div>
+    <div class="top-actions">
+      <span class="file-name" id="file-name">Nenhuma planilha selecionada</span>
+      <label class="file-button">
+        <input id="file-input" type="file" accept=".xlsx,.xlsm,.csv">
+        <span>Selecionar Excel ou CSV</span>
+      </label>
+    </div>
+  </header>
+  <section class="toolbar" aria-label="Dados do relatório">
+    <div class="field">
+      <label for="of-input">Número OF</label>
+      <input id="of-input" type="text" autocomplete="off" placeholder="Ex.: 031919">
+    </div>
+    <div class="field">
+      <label for="workshop-input">Oficina</label>
+      <input id="workshop-input" type="text" autocomplete="off" placeholder="Nome da oficina">
+    </div>
+    <div class="field">
+      <label for="client-input">Cliente</label>
+      <input id="client-input" type="text" autocomplete="off" placeholder="Nome do cliente">
+    </div>
+    <div class="field product">
+      <label for="product-input">Produto</label>
+      <input id="product-input" type="text" autocomplete="off" placeholder="Descrição do produto">
+    </div>
+    <button id="export-button" type="button" disabled>Salvar PDF</button>
+  </section>
+  <div id="status" class="status" role="status" aria-live="polite">Selecione uma planilha para montar o relatório.</div>
+  <main class="workspace">
+    <article class="paper" id="paper">
+      <header class="doc-head">
+        <img class="doc-logo" src="logo_amalfis.jpg" alt="AMALFIS">
+        <div class="doc-company">
+          <div>AMALFIS UNIFORMES CONFECCAO DE ROUPAS LTDA ME</div>
+          <div>CNPJ: 11.744.716/0001-10</div>
+        </div>
+        <div class="doc-user">
+          <div id="print-date"></div>
+          <div id="print-time"></div>
+          <div>JOAO.BRUMATI</div>
+          <div id="print-identification">Identificação: --</div>
+        </div>
+      </header>
+      <section class="doc-meta">
+        <div>Número OF:</div><div id="print-of"></div>
+        <div>Produto:</div><div id="print-product"></div>
+        <div>Cliente:</div><div id="print-client"></div>
+        <div>Depósito:</div><div id="print-deposit"></div>
+        <div>Oficina:</div><div id="print-workshop"></div>
+      </section>
+      <table class="doc-table">
+        <colgroup><col><col><col><col><col><col><col><col></colgroup>
+        <thead><tr>
+          <th>Código</th><th>Descrição de material</th><th>Quant.</th><th>Uni</th>
+          <th>Depósito</th><th>Custo</th><th>Total</th><th>Excluir</th>
+        </tr></thead>
+        <tbody id="rows"><tr><td class="empty-row" colspan="8">Aguardando planilha</td></tr></tbody>
+      </table>
+     
+      <section class="signatures">
+        <div class="signature">
+          <span>DATA:</span><span class="rule"></span>
+          <span>NOME:</span><span class="rule"></span>
+          <span class="caption">Assinatura Almoxarifado</span>
+        </div>
+        <div class="signature">
+          <span>DATA:</span><span class="rule"></span>
+          <span>NOME:</span><span class="rule"></span>
+          <span class="caption">Assinatura Requisitante</span>
+        </div>
+        <div class="signature">
+          <span>DATA:</span><span class="rule"></span>
+          <span>NOME:</span><span class="rule"></span>
+          <span class="caption">Assinatura Externo</span>
+        </div>
+      </section>
+    </article>
+  </main>
+  <script>
+    const ALLOWED_DEPOSITS = new Set(['0004', '0014']);
+    const fileInput = document.getElementById('file-input');
+    const exportButton = document.getElementById('export-button');
+    const statusBox = document.getElementById('status');
+    const ofInput = document.getElementById('of-input');
+    const workshopInput = document.getElementById('workshop-input');
+    const clientInput = document.getElementById('client-input');
+    const productInput = document.getElementById('product-input');
+    let items = [];
+    let depositDescription = '';
+    let isSaving = false;
+    let supabaseStorage;
+    const PDF_VIEWPORT_WIDTH = 794;
+
+    function normalize(value) {
+      return String(value ?? '').replace(/\uFFFD/g, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+    function valueText(value) {
+      if (value == null) return '';
+      if (value instanceof Date) return `${String(value.getDate()).padStart(2, '0')}/${String(value.getMonth() + 1).padStart(2, '0')}/${value.getFullYear()}`;
+      return String(value).trim().replace(/^"|"$/g, '');
+    }
+    function parseNumber(value) {
+      if (value == null || value === '') return null;
+      if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+      let text = String(value).trim();
+      if (text.includes(',')) text = text.replace(/\./g, '').replace(',', '.');
+      const number = Number(text);
+      return Number.isFinite(number) ? number : null;
+    }
+    function formatNumber(value, thousands = false) {
+      if (value == null) return '';
+      return (Math.round(value * 10000) / 10000).toLocaleString('pt-BR', {
+        useGrouping: thousands && Math.abs(value) >= 1000, maximumFractionDigits: 4,
+      });
+    }
+    function parseMoney(value) {
+      if (value == null || value === '') return null;
+      return parseNumber(String(value).replace(/[^\d,.-]/g, ''));
+    }
+    function formatCurrency(value) {
+      if (value == null) return '';
+      return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function setStatus(message, error = false) {
+      statusBox.textContent = message;
+      statusBox.classList.toggle('error', error);
+    }
+    function renderItems() {
+      const body = document.getElementById('rows');
+      body.replaceChildren();
+      for (const [index, item] of items.entries()) {
+        const row = document.createElement('tr');
+        for (const value of [item.code, item.description, item.quantity, item.unit,
+          item.deposit, item.cost, item.total]) {
+          const cell = document.createElement('td');
+          cell.textContent = value;
+          row.appendChild(cell);
+        }
+        const deleteCell = document.createElement('td');
+        deleteCell.className = 'delete-cell';
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'row-delete';
+        deleteButton.type = 'button';
+        deleteButton.dataset.index = index;
+        deleteButton.disabled = isSaving;
+        deleteButton.setAttribute('aria-label', `Excluir item ${item.code}`);
+        deleteButton.title = 'Excluir este item do relatório';
+        deleteButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l1 2h5v2H3V5h5l1-2zm-3 6h12l-1 12H7L6 9zm3 2v8h2v-8H9zm4 0v8h2v-8h-2z"></path></svg>';
+        deleteCell.appendChild(deleteButton);
+        row.appendChild(deleteCell);
+        body.appendChild(row);
+      }
+      if (!items.length) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.className = 'empty-row';
+        cell.colSpan = 8;
+        cell.textContent = 'Nenhum item para exibir';
+        row.appendChild(cell);
+        body.appendChild(row);
+      }
+      exportButton.disabled = items.length === 0;
+    }
+    function syncHeader() {
+      document.getElementById('print-of').textContent = ofInput.value;
+      document.getElementById('print-workshop').textContent = workshopInput.value;
+      document.getElementById('print-product').textContent = productInput.value;
+      document.getElementById('print-client').textContent = clientInput.value;
+      document.getElementById('print-deposit').textContent = depositDescription;
+      const now = new Date();
+      document.getElementById('print-date').textContent = now.toLocaleDateString('pt-BR');
+      document.getElementById('print-time').textContent = now.toLocaleTimeString('pt-BR');
+      exportButton.disabled = isSaving || !supabaseStorage || !window.html2pdf
+        || !items.length || !ofInput.value.trim() || !productInput.value.trim();
+    }
+    async function initializePdfStorage() {
+      try {
+        const [response, supabaseModule] = await Promise.all([
+          fetch('/api/health'),
+          import('https://esm.sh/@supabase/supabase-js@2'),
+        ]);
+        const health = await response.json();
+        if (!response.ok || health.databaseConfigured !== true || health.storageConfigured !== true) {
+          throw new Error(
+            health.databaseConfigured !== true
+              ? 'Configure SUPABASE_URL e SUPABASE_SECRET_KEY na Vercel.'
+              : 'Configure SUPABASE_PUBLISHABLE_KEY e crie o bucket privado no Supabase Storage.',
+          );
+        }
+        if (!window.html2pdf) throw new Error('Não foi possível carregar o gerador de PDF.');
+        const { createClient } = supabaseModule;
+        supabaseStorage = createClient(health.supabaseUrl, health.supabasePublishableKey)
+          .storage.from('relatorios-pdfs');
+        syncHeader();
+        setStatus('Supabase e armazenamento configurados. Selecione uma planilha para montar o relatório.');
+      } catch (error) {
+        setStatus(`Não foi possível preparar o armazenamento do relatório: ${error.message}`, true);
+      }
+    }
+    async function createPdfFile() {
+      const paper = document.getElementById('paper');
+      document.body.classList.add('pdf-export');
+      try {
+        return await window.html2pdf().set({
+          margin: 0,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: {
+            scale: 1.5,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            windowWidth: PDF_VIEWPORT_WIDTH,
+            width: PDF_VIEWPORT_WIDTH,
+            scrollX: 0,
+            scrollY: 0,
+            onclone: (clonedDocument) => {
+              clonedDocument.body.classList.add('pdf-export');
+              const clonedPaper = clonedDocument.getElementById('paper');
+              clonedPaper.style.width = `${PDF_VIEWPORT_WIDTH}px`;
+              clonedPaper.style.minWidth = `${PDF_VIEWPORT_WIDTH}px`;
+              clonedPaper.style.maxWidth = `${PDF_VIEWPORT_WIDTH}px`;
+              clonedPaper.style.margin = '0';
+              clonedPaper.style.boxSizing = 'border-box';
+            },
+          },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'] },
+        }).from(paper).outputPdf('blob');
+      } finally {
+        document.body.classList.remove('pdf-export');
+      }
+    }
+    function findColumn(headers, name) { return headers.findIndex((header) => normalize(header) === name); }
+    function parseCsv(source) {
+      const firstLine = source.split(/\r?\n/, 1)[0] || '';
+      const delimiter = (firstLine.match(/;/g) || []).length >= (firstLine.match(/,/g) || []).length ? ';' : ',';
+      const rows = [];
+      let row = [];
+      let field = '';
+      let quoted = false;
+      for (let index = 0; index < source.length; index += 1) {
+        const character = source[index];
+        if (character === '"') {
+          if (quoted && source[index + 1] === '"') { field += '"'; index += 1; }
+          else quoted = !quoted;
+        } else if (character === delimiter && !quoted) {
+          row.push(field); field = '';
+        } else if ((character === '\n' || character === '\r') && !quoted) {
+          if (character === '\r' && source[index + 1] === '\n') index += 1;
+          row.push(field);
+          if (row.some((cell) => cell.trim())) rows.push(row);
+          row = []; field = '';
+        } else field += character;
+      }
+      row.push(field);
+      if (row.some((cell) => cell.trim())) rows.push(row);
+      return rows;
+    }
+    async function readWorkbook(file) {
+      const bytes = await file.arrayBuffer();
+      if (file.name.toLowerCase().endsWith('.csv')) {
+        let text;
+        try { text = new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
+        catch { text = new TextDecoder('windows-1252').decode(bytes); }
+        return parseCsv(text.replace(/^\uFEFF/, ''));
+      }
+      if (!window.XLSX) throw new Error('Não foi possível carregar o leitor de planilhas. Verifique sua conexão com a internet e abra novamente o HTML.');
+      const workbook = XLSX.read(bytes, { type: 'array', cellDates: true, codepage: 1252 });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      if (!firstSheet) throw new Error('A planilha não possui uma aba com dados.');
+      return XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: false, defval: '' });
+    }
+    async function loadFile(file) {
+      setStatus('Lendo arquivo...');
+      items = [];
+      renderItems();
+      try {
+        const rows = await readWorkbook(file);
+        if (!rows.length) throw new Error('O arquivo selecionado está vazio.');
+        const headers = rows[0].map(valueText);
+        const columns = {
+          code: findColumn(headers, 'codigo'), deposit: findColumn(headers, 'deposito'),
+          quantity: findColumn(headers, 'qtde'), unit: findColumn(headers, 'unidade'),
+          cost: headers.findIndex((header) => [
+            'custo', 'custounitario', 'valorunitario', 'vlunitario', 'precounitario', 'preco',
+          ].includes(normalize(header))),
+          of: findColumn(headers, 'numeroof'),
+          product: findColumn(headers, 'produto'), baseProduct: findColumn(headers, 'prodbase'),
+          baseDescription: findColumn(headers, 'descprodbase'),
+        };
+        if (columns.of < 0) columns.of = findColumn(headers, 'of');
+        const required = ['code', 'deposit', 'quantity', 'unit', 'cost'];
+        const missing = required.filter((key) => columns[key] < 0);
+        if (missing.length) {
+          if (headers.length === 2 && /^\d+$/.test(headers[0]) && parseNumber(headers[1]) != null) {
+            throw new Error('Esse parece ser o arquivo auxiliar de saldos (código;saldo), não o relatório de movimentações. Selecione a exportação do sistema.');
+          }
+          const missingLabels = missing.map((key) => key === 'cost' ? 'custo unitário' : key);
+          throw new Error(`Colunas obrigatórias não encontradas: ${missingLabels.join(', ')}. Confira se selecionou o relatório de movimentações.`);
+        }
+        const discarded = [];
+        const dataRows = rows.slice(1);
+        for (const row of dataRows) {
+          if (!row.some((cell) => valueText(cell))) continue;
+          let deposit = valueText(row[columns.deposit]);
+          if (/^\d+$/.test(deposit)) deposit = deposit.padStart(4, '0');
+          if (!ALLOWED_DEPOSITS.has(deposit)) { discarded.push(deposit); continue; }
+          const code = valueText(row[columns.code]);
+          const quantityValue = parseNumber(row[columns.quantity]);
+          const costValue = parseMoney(row[columns.cost]);
+          items.push({
+            code,
+            description: valueText(row[columns.code + 1]),
+            quantity: formatNumber(quantityValue),
+            unit: valueText(row[columns.unit]),
+            deposit,
+            depositDescription: valueText(row[columns.deposit + 1]),
+            cost: formatCurrency(costValue),
+            total: quantityValue == null || costValue == null
+              ? ''
+              : formatCurrency(quantityValue * costValue),
+          });
+        }
+        const importedCount = items.length;
+        items = combineDuplicateReportItems(items);
+        const first = dataRows.find((row) => row.some((cell) => valueText(cell)));
+        if (columns.of >= 0 && first) ofInput.value = valueText(first[columns.of]);
+        if (columns.product >= 0 && first) productInput.value = valueText(first[columns.product]);
+        const deposits = [...new Set(items.map((item) => item.deposit))].sort();
+        const descriptions = [...new Set(items.map((item) => item.depositDescription).filter(Boolean))].sort();
+        depositDescription = deposits.length === 1 && descriptions.length
+          ? `${deposits[0]} - ${descriptions[0].split(' MG (')[0]}` : deposits.join(' / ');
+        document.getElementById('file-name').textContent = file.name;
+        renderItems();
+        syncHeader();
+        if (!items.length) {
+          setStatus(`Nenhuma linha dos depósitos 0004 e 0014. ${discarded.length} linha(s) de outros depósitos foram ignoradas.`, true);
+        } else {
+          const combinedCount = importedCount - items.length;
+          setStatus(`${items.length} item(ns) incluído(s); ${combinedCount} linha(s) repetida(s) agrupada(s); ${discarded.length} de outros depósitos ignoradas.`);
+        }
+      } catch (error) {
+        document.getElementById('file-name').textContent = file.name;
+        renderItems();
+        syncHeader();
+        setStatus(error.message, true);
+      }
+    }
+    fileInput.addEventListener('change', (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (file) loadFile(file);
+    });
+    document.getElementById('rows').addEventListener('click', (event) => {
+      const button = event.target.closest('.row-delete');
+      if (!button) return;
+      items.splice(Number(button.dataset.index), 1);
+      renderItems();
+      syncHeader();
+      setStatus(items.length
+        ? `Item removido. ${items.length} linha(s) restante(s) no relatório.`
+        : 'Todos os itens foram removidos do relatório.');
+    });
+    ofInput.addEventListener('input', syncHeader);
+    workshopInput.addEventListener('input', syncHeader);
+    clientInput.addEventListener('input', syncHeader);
+    productInput.addEventListener('input', syncHeader);
+    exportButton.addEventListener('click', async () => {
+      syncHeader();
+      if (exportButton.disabled) return;
+      isSaving = true;
+      fileInput.disabled = true;
+      [ofInput, workshopInput, clientInput, productInput].forEach((input) => { input.disabled = true; });
+      renderItems();
+      syncHeader();
+      setStatus('Registrando a impressão no banco de dados...');
+      let identification;
+      try {
+        const response = await fetch('/api/prints', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ofNumber: ofInput.value.trim(),
+            workshop: workshopInput.value.trim(),
+            client: clientInput.value.trim(),
+            product: productInput.value.trim(),
+            deposit: depositDescription,
+            items,
+          }),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          identification = result.identification;
+          throw new Error(result.error || 'Não foi possível registrar a impressão.');
+        }
+        identification = result.identification;
+        document.getElementById('print-identification').textContent =
+          `Identificação: ${String(result.identification).padStart(2, '0')}`;
+        setStatus(`Gerando PDF da identificação ${String(result.identification).padStart(2, '0')}...`);
+        const uploadUrlResponse = await fetch(`/api/prints/${result.identification}/upload-url`, {
+          method: 'POST',
+        });
+        const uploadDetails = await uploadUrlResponse.json();
+        if (!uploadUrlResponse.ok) {
+          throw new Error(uploadDetails.error || 'Não foi possível preparar o envio do PDF.');
+        }
+
+        const pdf = await createPdfFile();
+        const { error: uploadError } = await supabaseStorage.uploadToSignedUrl(
+          uploadDetails.path,
+          uploadDetails.token,
+          pdf,
+          { contentType: 'application/pdf', upsert: false },
+        );
+        if (uploadError) throw new Error(uploadError.message);
+
+        const completeResponse = await fetch(`/api/prints/${result.identification}/complete`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pathname: uploadDetails.path }),
+        });
+        const completeResult = await completeResponse.json();
+        if (!completeResponse.ok) {
+          throw new Error(completeResult.error || 'O banco não confirmou o arquivamento do PDF.');
+        }
+
+        setStatus(`PDF arquivado no Supabase Storage. Identificação ${String(result.identification).padStart(2, '0')}. Abrindo a impressão...`);
+        document.title = `Baixa_Consumo_OF_${ofInput.value.trim().replace(/[\\/:*?"<>|]/g, '_')}`;
+        window.print();
+        window.setTimeout(() => { document.title = 'Baixa de Consumo de Aviamentos'; }, 1000);
+      } catch (error) {
+        const prefix = identification
+          ? `Identificação ${String(identification).padStart(2, '0')} registrada; o PDF pode não ter sido arquivado.`
+          : 'Erro ao registrar a impressão.';
+        setStatus(`${prefix} ${error.message}`, true);
+      } finally {
+        isSaving = false;
+        fileInput.disabled = false;
+        [ofInput, workshopInput, clientInput, productInput].forEach((input) => { input.disabled = false; });
+        renderItems();
+        syncHeader();
+      }
+    });
+    syncHeader();
+    initializePdfStorage();
+  </script>
+</body>
+</html>

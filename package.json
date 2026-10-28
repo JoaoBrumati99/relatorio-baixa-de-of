@@ -1,0 +1,19 @@
+{
+  "name": "relatorio-baixa-de-of",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Relatório de baixa de OF com Supabase",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node preview-server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0"
+  },
+  "overrides": {
+    "zod": "^4.6.7"
+  }
+}
