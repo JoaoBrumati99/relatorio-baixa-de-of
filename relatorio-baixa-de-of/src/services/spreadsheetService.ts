@@ -46,9 +46,42 @@ function parseMoney(value: unknown) {
   return parseNumber(String(value).replace(/[^\d,.-]/g, ''))
 }
 
-function formatCurrency(value: number | null) {
+function formatCurrency(value: number | null, maximumFractionDigits = 2) {
   if (value == null) return ''
-  return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits })}`
+}
+
+function combineDuplicateItems(items: ReportItem[]) {
+  const groups = new Map<string, ReportItem[]>()
+  for (const item of items) {
+    const key = `${item.code.trim().toLocaleUpperCase('pt-BR')}\u0000${item.deposit.trim()}`
+    const group = groups.get(key)
+    if (group) group.push(item)
+    else groups.set(key, [item])
+  }
+
+  const combined: ReportItem[] = []
+  for (const group of groups.values()) {
+    const amounts = group.map((item) => ({
+      quantity: parseNumber(item.quantity),
+      total: parseMoney(item.total),
+    }))
+    if (group.length === 1 || amounts.some(({ quantity, total }) => quantity == null || total == null)) {
+      combined.push(...group)
+      continue
+    }
+
+    const quantity = amounts.reduce((sum, amount) => sum + amount.quantity!, 0)
+    const total = amounts.reduce((sum, amount) => sum + amount.total!, 0)
+    combined.push({
+      ...group[0],
+      quantity: formatNumber(quantity),
+      cost: formatCurrency(quantity === 0 ? null : total / quantity, 4),
+      total: formatCurrency(total),
+    })
+  }
+
+  return combined
 }
 
 function parseCsv(source: string): string[][] {
@@ -121,7 +154,6 @@ export async function readSpreadsheet(file: File): Promise<ParsedSpreadsheet> {
   const columns = {
     code: findColumn('codigo'),
     deposit: findColumn('deposito'),
-    lot: findColumn('lote'),
     quantity: findColumn('qtde'),
     unit: findColumn('unidade'),
     cost: headers.findIndex((header) => [
@@ -135,7 +167,7 @@ export async function readSpreadsheet(file: File): Promise<ParsedSpreadsheet> {
   }
   if (columns.of < 0) columns.of = findColumn('of')
 
-  const required = ['code', 'lot', 'quantity', 'unit', 'cost'] as const
+  const required = ['code', 'quantity', 'unit', 'cost'] as const
   const missing = required.filter((key) => columns[key] < 0)
   if (missing.length) {
     if (headers.length === 2 && /^\d+$/.test(headers[0]) && parseNumber(headers[1]) != null) {
@@ -165,14 +197,14 @@ export async function readSpreadsheet(file: File): Promise<ParsedSpreadsheet> {
       description: valueText(row[columns.code + 1]),
       quantity: formatNumber(quantity),
       unit: valueText(row[columns.unit]),
-      lot: valueText(row[columns.lot]),
       deposit,
       depositDescription: columns.deposit >= 0 ? valueText(row[columns.deposit + 1]) : '',
-      cost: formatCurrency(cost),
+      cost: formatCurrency(cost, 4),
       total: quantity == null || cost == null ? '' : formatCurrency(quantity * cost),
     })
   }
 
+  const combinedItems = combineDuplicateItems(items)
   const deposits = [...new Set(items.map((item) => item.deposit).filter(Boolean))].sort()
   const descriptions = [...new Set(items.map((item) => item.depositDescription).filter(Boolean))].sort()
   const depositDescription = deposits.length === 1 && descriptions.length
@@ -180,7 +212,8 @@ export async function readSpreadsheet(file: File): Promise<ParsedSpreadsheet> {
     : deposits.join(' / ')
 
   return {
-    items,
+    items: combinedItems,
+    combinedCount: items.length - combinedItems.length,
     deposit: depositDescription,
     ...(operatorName ? { operatorName } : {}),
     ...(columns.of >= 0 && first ? { ofNumber: valueText(first[columns.of]) } : {}),

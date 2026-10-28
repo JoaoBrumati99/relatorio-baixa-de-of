@@ -75,7 +75,6 @@ function normalizeReport(body: unknown): ReportRecord {
       description: textValue(values.description, 'descrição do item'),
       quantity: textValue(values.quantity, 'quantidade do item'),
       unit: textValue(values.unit, 'unidade do item'),
-      lot: textValue(values.lot, 'lote do item'),
       deposit: textValue(values.deposit, 'depósito do item'),
       depositDescription: textValue(values.depositDescription, 'descrição do depósito'),
       cost: textValue(values.cost, 'custo do item'),

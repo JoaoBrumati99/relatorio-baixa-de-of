@@ -13,7 +13,6 @@ const columns = [
   'Descrição de material',
   'Quant.',
   'Uni',
-  'Lote',
   'Depósito',
   'Custo',
   'Total',
@@ -34,12 +33,11 @@ export function ReportTable({ items, isSaving, onRemoveItem }: ReportTableProps)
       </thead>
       <tbody>
         {items.length ? items.map((item, index) => (
-          <tr key={`${item.code}-${item.lot}-${index}`}>
+          <tr key={`${item.code}-${item.deposit}-${index}`}>
             <td>{item.code}</td>
             <td>{item.description}</td>
             <td>{item.quantity}</td>
             <td>{item.unit}</td>
-            <td>{item.lot}</td>
             <td>{item.deposit}</td>
             <td>{item.cost}</td>
             <td>{item.total}</td>

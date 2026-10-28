@@ -3,7 +3,6 @@ export interface ReportItem {
   description: string
   quantity: string
   unit: string
-  lot: string
   deposit: string
   depositDescription: string
   cost: string
@@ -25,6 +24,7 @@ export interface ReportPayload {
 
 export interface ParsedSpreadsheet {
   items: ReportItem[]
+  combinedCount: number
   deposit: string
   operatorName?: string
   ofNumber?: string

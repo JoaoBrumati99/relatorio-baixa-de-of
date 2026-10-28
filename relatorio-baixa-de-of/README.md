@@ -35,7 +35,10 @@ configuradas.
 Cada impressão gera uma identificação no banco, cria uma URL assinada de uso
 único para o PDF e arquiva o arquivo no bucket privado `relatorios-pdfs`. A
 interface permite importar `.xlsx`, `.xlsm` e `.csv`; todos os itens da planilha
-são incluídos, sem filtrar pelo depósito.
+são incluídos, sem filtrar pelo depósito. Linhas com o mesmo código e depósito
+são agrupadas mesmo quando têm lotes diferentes, somando quantidades e totais e
+recalculando o custo unitário como média ponderada. O mesmo código em depósitos
+diferentes continua separado. A coluna de lote não é exibida nem exigida.
 
 Esta aplicação não inclui autenticação. Proteja o endereço da implantação antes
 de divulgá-lo: qualquer pessoa que puder acessá-lo poderá registrar relatórios e

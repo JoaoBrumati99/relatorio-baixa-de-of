@@ -91,7 +91,7 @@ function App() {
         ...(parsed.product !== undefined ? { product: parsed.product } : {}),
       }))
       setStatus(parsed.items.length
-        ? `${parsed.items.length} linha(s) incluída(s) no relatório.`
+        ? `${parsed.items.length} item(ns) incluído(s); ${parsed.combinedCount} linha(s) repetida(s) agrupada(s).`
         : 'A planilha não contém itens para exibir.')
       setStatusIsError(parsed.items.length === 0)
     } catch (error) {
