@@ -114,10 +114,19 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .doc-table { flex: 0 0 auto; width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 11pt; line-height: 1.16; }
 .doc-table th, .doc-table td { padding: .8mm .55mm; text-align: left; vertical-align: top; border: .35mm solid var(--line); overflow-wrap: anywhere; }
 .doc-table th { background: #f1f3f3; font-weight: 700; white-space: nowrap; overflow-wrap: normal; }
+.doc-table th:nth-child(n + 3):nth-child(-n + 7),
+.doc-table td:nth-child(n + 3):nth-child(-n + 7) { text-align: center; vertical-align: middle; }
+.doc-table th:first-child, .doc-table td:first-child {
+  padding-left: 1.2mm;
+  padding-right: 1.2mm;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
 .doc-table thead { display: table-header-group; }
 .doc-table tr { break-inside: avoid; page-break-inside: avoid; }
-.doc-table col:nth-child(1) { width: 9%; }
-.doc-table col:nth-child(2) { width: 32%; }
+.doc-table col:nth-child(1) { width: 13%; }
+.doc-table col:nth-child(2) { width: 28%; }
 .doc-table col:nth-child(3) { width: 9%; }
 .doc-table col:nth-child(4) { width: 7%; }
 .doc-table col:nth-child(5) { width: 10%; }
@@ -137,8 +146,8 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .pdf-export .doc-table col:nth-child(8),
 .pdf-export .doc-table th:nth-child(8),
 .pdf-export .doc-table td:nth-child(8) { display: none; }
-.pdf-export .doc-table col:nth-child(1) { width: 9%; }
-.pdf-export .doc-table col:nth-child(2) { width: 35%; }
+.pdf-export .doc-table col:nth-child(1) { width: 14%; }
+.pdf-export .doc-table col:nth-child(2) { width: 30%; }
 .pdf-export .doc-table col:nth-child(3) { width: 10%; }
 .pdf-export .doc-table col:nth-child(4) { width: 7%; }
 .pdf-export .doc-table col:nth-child(5) { width: 11%; }
@@ -173,6 +182,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   .doc-user { font-size: 7pt; }
   .doc-table { font-size: 7pt; }
   .doc-table th, .doc-table td { padding: .8mm .4mm; }
+  .doc-table th:first-child, .doc-table td:first-child { padding-left: 1mm; padding-right: 1.2mm; }
   .signatures { gap: 5mm; }
 }
 @page { size: A4 portrait; margin: 0; }
@@ -183,8 +193,8 @@ button:disabled { opacity: .45; cursor: not-allowed; }
   .paper { width: 210mm; min-height: 297mm; margin: 0; padding: 4mm 4mm 3.5mm; box-shadow: none; }
   .doc-table th { background: #f1f3f3 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .doc-table col:nth-child(8), .doc-table th:nth-child(8), .doc-table td:nth-child(8) { display: none; }
-  .doc-table col:nth-child(1) { width: 9%; }
-  .doc-table col:nth-child(2) { width: 35%; }
+  .doc-table col:nth-child(1) { width: 14%; }
+  .doc-table col:nth-child(2) { width: 30%; }
   .doc-table col:nth-child(3) { width: 10%; }
   .doc-table col:nth-child(4) { width: 7%; }
   .doc-table col:nth-child(5) { width: 11%; }

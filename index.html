@@ -59,7 +59,6 @@
         <div>Número OF:</div><div id="print-of"></div>
         <div>Produto:</div><div id="print-product"></div>
         <div>Cliente:</div><div id="print-client"></div>
-        <div>Depósito:</div><div id="print-deposit"></div>
         <div>Oficina:</div><div id="print-workshop"></div>
       </section>
       <table class="doc-table">
@@ -91,7 +90,6 @@
     </article>
   </main>
   <script>
-    const ALLOWED_DEPOSITS = new Set(['0004', '0014']);
     const fileInput = document.getElementById('file-input');
     const exportButton = document.getElementById('export-button');
     const statusBox = document.getElementById('status');
@@ -134,7 +132,7 @@
     }
     function formatCurrency(value) {
       if (value == null) return '';
-      return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
     function setStatus(message, error = false) {
       statusBox.textContent = message;
@@ -181,7 +179,6 @@
       document.getElementById('print-workshop').textContent = workshopInput.value;
       document.getElementById('print-product').textContent = productInput.value;
       document.getElementById('print-client').textContent = clientInput.value;
-      document.getElementById('print-deposit').textContent = depositDescription;
       const now = new Date();
       document.getElementById('print-date').textContent = now.toLocaleDateString('pt-BR');
       document.getElementById('print-time').textContent = now.toLocaleTimeString('pt-BR');
@@ -312,13 +309,11 @@
           const missingLabels = missing.map((key) => key === 'cost' ? 'custo unitário' : key);
           throw new Error(`Colunas obrigatórias não encontradas: ${missingLabels.join(', ')}. Confira se selecionou o relatório de movimentações.`);
         }
-        const discarded = [];
         const dataRows = rows.slice(1);
         for (const row of dataRows) {
           if (!row.some((cell) => valueText(cell))) continue;
           let deposit = valueText(row[columns.deposit]);
           if (/^\d+$/.test(deposit)) deposit = deposit.padStart(4, '0');
-          if (!ALLOWED_DEPOSITS.has(deposit)) { discarded.push(deposit); continue; }
           const code = valueText(row[columns.code]);
           const quantityValue = parseNumber(row[columns.quantity]);
           const costValue = parseMoney(row[columns.cost]);
@@ -348,10 +343,10 @@
         renderItems();
         syncHeader();
         if (!items.length) {
-          setStatus(`Nenhuma linha dos depósitos 0004 e 0014. ${discarded.length} linha(s) de outros depósitos foram ignoradas.`, true);
+          setStatus('Nenhum item encontrado na planilha.', true);
         } else {
           const combinedCount = importedCount - items.length;
-          setStatus(`${items.length} item(ns) incluído(s); ${combinedCount} linha(s) repetida(s) agrupada(s); ${discarded.length} de outros depósitos ignoradas.`);
+          setStatus(`${items.length} item(ns) incluído(s); ${combinedCount} linha(s) repetida(s) agrupada(s).`);
         }
       } catch (error) {
         document.getElementById('file-name').textContent = file.name;

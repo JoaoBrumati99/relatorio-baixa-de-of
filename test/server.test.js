@@ -112,10 +112,19 @@ test('health reports Supabase readiness and exposes only the publishable configu
   assert.match(pageText, /Descrição de material/);
   assert.match(pageText, /<th>Quant\.<\/th>/);
   assert.doesNotMatch(pageText, /<th>Lote<\/th>/);
+  assert.match(pageText, /<th>Depósito<\/th>/);
+  assert.doesNotMatch(pageText, /id="print-deposit"/);
+  assert.doesNotMatch(pageText, /ALLOWED_DEPOSITS/);
+  assert.match(pageText, /Nenhum item encontrado na planilha/);
   assert.match(pageText, /Assinatura Externo/);
 
   const helper = await fetch(`http://127.0.0.1:${port}/lib/report-items.js`);
   assert.equal(helper.status, 200);
+  const styles = fs.readFileSync(path.join(__dirname, '..', 'styles.css'), 'utf8');
+  assert.match(styles, /\.doc-table th:first-child, \.doc-table td:first-child \{[\s\S]*white-space: nowrap;/);
+  assert.match(styles, /\.doc-table col:nth-child\(1\) \{ width: 13%; \}/);
+  assert.match(styles, /\.pdf-export \.doc-table col:nth-child\(1\) \{ width: 14%; \}/);
+  assert.match(styles, /\.doc-table th:nth-child\(n \+ 3\):nth-child\(-n \+ 7\)/);
 });
 
 test('duplicate item quantities and totals are combined by code and deposit', () => {
@@ -129,9 +138,9 @@ test('duplicate item quantities and totals are combined by code and deposit', ()
   assert.deepEqual(items.map(({ code, deposit, quantity, cost, total }) => ({
     code, deposit, quantity, cost, total,
   })), [
-    { code: '05012021', deposit: '0020', quantity: '158', cost: '0,84', total: '132,72' },
-    { code: '05012021', deposit: '0004', quantity: '25', cost: '0,90', total: '22,50' },
-    { code: '05012022', deposit: '0020', quantity: '5', cost: '1,00', total: '5,00' },
+    { code: '05012021', deposit: '0020', quantity: '158', cost: 'R$ 0,84', total: 'R$ 132,72' },
+    { code: '05012021', deposit: '0004', quantity: '25', cost: 'R$ 0,90', total: 'R$ 22,50' },
+    { code: '05012022', deposit: '0020', quantity: '5', cost: 'R$ 1,00', total: 'R$ 5,00' },
   ]);
 });
 
